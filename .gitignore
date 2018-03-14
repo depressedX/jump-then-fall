@@ -1,4 +1,4 @@
-
+node_modules/*
 .idea/inspectionProfiles/
 .idea/jump-then-fall.iml
 .idea/modules.xml

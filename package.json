@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "webpack-dev-server"
   },
   "repository": {
     "type": "git",
@@ -16,5 +17,16 @@
   "bugs": {
     "url": "https://github.com/depressedX/jump-then-fall/issues"
   },
-  "homepage": "https://github.com/depressedX/jump-then-fall#readme"
+  "homepage": "https://github.com/depressedX/jump-then-fall#readme",
+  "devDependencies": {
+    "html-webpack-plugin": "^3.0.6",
+    "webpack": "^4.1.1",
+    "webpack-cli": "^2.0.12",
+    "webpack-dev-server": "^3.1.1",
+    "webpack-init": "^0.1.2"
+  },
+  "dependencies": {
+    "event-emitter": "^0.3.5",
+    "three": "^0.90.0"
+  }
 }
