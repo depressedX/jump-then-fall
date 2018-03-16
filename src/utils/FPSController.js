@@ -5,6 +5,7 @@ function funcExecutor() {
     funcList.forEach(func=>{
         func()
     })
+    monitor = requestAnimationFrame(funcExecutor)
 }
 
 function delegate(...funcs) {

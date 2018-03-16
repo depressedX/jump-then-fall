@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import FPS from '../utils/FPSController'
+import FPS from '../../utils/FPSController'
 import ee from 'event-emitter'
 
 
@@ -73,13 +73,14 @@ function JumpableObject(size) {
         /****************************************************************/
         /*                       info                          */
         /****************************************************************/
-        size: null,
+        size,
+
         // 默认弹跳下落到与原来Y相同则停止
         initialY: 0,
         // 弹跳高度与size成正比
-        get maxHeight() {
-            return this.size * 2
-        },
+        maxHeight: 0,
+        // 最大弹跳距离与size成正比
+        maxBouncingDist: 0,
 
 
         /****************************************************************/
@@ -87,10 +88,8 @@ function JumpableObject(size) {
         /****************************************************************/
         state: null,
         bouncingDuration: 0,
-        orientation: new THREE.Vector2(1,  1),
-        get position() {
-            return this.object3D.position
-        },
+        orientation: new THREE.Vector2(1, 1),
+        position: null,
 
 
         /****************************************************************/
@@ -108,26 +107,48 @@ function JumpableObject(size) {
 
     }
     Object.assign(this, publicProperties)
+    Object.defineProperty(this, 'position', {
+        enumerable: true,
+        get() {
+            if (!this.object3D) return null
+            return this.object3D.position
+        }
+    })
+    Object.defineProperty(this, 'maxHeight', {
+        enumerable: true,
+        get() {
+            return this.size * 2
+        }
+    })
+    Object.defineProperty(this, 'maxBouncingDist', {
+        enumerable: true,
+        get() {
+            return this.size * 50
+        }
+    })
+
 
     this.object3D = new JumpableObject3D(size)
     this.state = this.IDLE
 
     // 委托给FPS管理器的更新函数
     FPS.delegate(this.update.bind(this))
+
 }
 
-// 绑定事件触发器
-ee(JumpableObject.prototype)
 // 绑定原型函数
 JumpableObject.prototype = {
     constructor: JumpableObject,
 
     charge() {
+        if (!this.state === this.IDLE) return
         this.state = this.CHARGING
     },
     release() {
-        this.state = this.BOUNCE_ROARING
-
+        if (!this.state === this.CHARGING) return
+        this.state = this.BOUNCING
+        let dist = Math.min(this.bouncingDuration * 2.5, this.maxBouncingDist)
+        this.bouncingSimulator.reset(this.maxHeight, dist, 20)
         this.bouncingDuration = 0
     },
 
@@ -143,12 +164,14 @@ JumpableObject.prototype = {
             case this.BOUNCING: {
                 let {dx, dy} = this.bouncingSimulator.next()
                 this.height = this.height + dy
-                this.position.x += dx*Math.cos(this.orientation.angle())
-                this.position.z += dx*Math.sin(this.orientation.angle())
+                this.position.x += dx * Math.cos(this.orientation.angle())
+                this.position.z += dx * Math.sin(this.orientation.angle())
+                this.position.y += dy
 
-                if (this.bouncingSimulator.isEnd){
+                if (this.bouncingSimulator.isEnd) {
                     this.state = this.IDLE
                     this.bouncingDuration = 0
+                    this.emit('jumpover', this.bouncingSimulator.x, this.bouncingSimulator.y)
                 }
                 break
             }
@@ -157,14 +180,44 @@ JumpableObject.prototype = {
 
 
 }
+// 绑定事件触发器
+ee(JumpableObject.prototype)
 
+
+/***
+ * 可添加到场景中的小人  初始位置为脚站在原点
+ * @param size  圆柱体下底面直径
+ * @constructor
+ */
 function JumpableObject3D(size) {
-    let geometry = new THREE.SphereGeometry(size, size * 5, size * 5);
-    var material = new THREE.MeshBasicMaterial({color: 0xffff00});
+    let height = size * 1.7
 
-    THREE.Mesh.call(this, geometry, material)
+    let randomColor = new THREE.Color().setHSL(Math.random(), .5, .5)
+
+    let bodyGeometry = new THREE.CylinderGeometry(size / 2 * .7, size / 2, height, size, height * 5),
+        bodyMaterial = new THREE.MeshLambertMaterial({
+            color: randomColor
+        })
+    let body = new THREE.Mesh(bodyGeometry, bodyMaterial)
+
+    let headGeometry = new THREE.SphereGeometry(size / 2 * .7),
+        headMaterial = new THREE.MeshLambertMaterial({
+            color: randomColor
+        })
+    let head = new THREE.Mesh(headGeometry, headMaterial)
+
+    body.position.y = height / 2
+    head.position.set(0, height + size/2 , 0)
+
+
+
+    THREE.Group.call(this)
+    this.add(body, head)
 }
 
-JumpableObject3D.prototype = Object.assign(Object.create(THREE.Mesh.prototype), {
+JumpableObject3D.prototype = Object.assign(Object.create(THREE.Group.prototype), {
     constructor: JumpableObject3D,
 })
+
+
+export default JumpableObject
