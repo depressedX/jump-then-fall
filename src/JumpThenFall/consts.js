@@ -17,5 +17,5 @@ export default {
 
     // 渲染器参数
     // 横向分辨率  纵向分辨率结合相机参数就得出来了
-    RENDERER_DEFAULT_RESOLUTION:400,
+    RENDERER_DEFAULT_RESOLUTION:Math.min(window.innerWidth,400),
 }

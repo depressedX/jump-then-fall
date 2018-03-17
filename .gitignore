@@ -7,3 +7,5 @@ node_modules/*
 .idea/misc.xml
 .idea/shelf/
 .idea/vcs.xml
+/dist/
+dist/

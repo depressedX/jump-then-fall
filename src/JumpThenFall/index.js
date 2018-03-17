@@ -29,9 +29,11 @@ function Game(dom, constants = consts) {
         /****************************************************************/
         /*                       状态变量                          */
         /****************************************************************/
+        score:0,
         gameState: 0,
-        PLAYING: 0,
-        GAMA_OVER: 1,
+        WAITING_PLAYING:0,
+        PLAYING: 1,
+        GAMA_OVER: 2,
         // 当前着陆的盒子
         curLandingBoxIndex: 0,
         // 下个盒子的方向
@@ -48,7 +50,7 @@ function Game(dom, constants = consts) {
 
 
     // 执行一系列初始化
-    this.restart()
+    this.reset()
 
 
     // 总渲染控制器
@@ -57,8 +59,15 @@ function Game(dom, constants = consts) {
 
 Game.prototype = {
     constructor: Game,
-    restart() {
+    restart(){
+        this.reset()
         this.gameState = this.PLAYING
+    },
+    /***
+     * 重置到WAITING_PLAYING状态
+     */
+    reset() {
+        this.gameState = this.WAITING_PLAYING
 
         this.jumpableObject.position.x = 0
         this.jumpableObject.position.z = 0
@@ -67,6 +76,7 @@ Game.prototype = {
         this.landingBoxes = []
         this.landingBoxes.push(new BaseLandingBox(this.consts.BASE_LANDING_BOX_SIZE, this.consts.ALL_LANDING_BOX_HEIGHT))
         this.curLandingBoxIndex = 0
+        this.score = 0
 
         // 生成下一个盒子 并做出类似jumpoverHandler的行为
         // 暂时默认着陆盒都是正方形计算边界
@@ -134,6 +144,8 @@ function jumpoverHandler(dx, dz) {
         Math.abs(jumpableObjectCenter.z - box2Center.z) < box2.size / 2) {
         // 跳在下一个盒子上
         this.curLandingBoxIndex++
+        // 分数暂时默认和盒子数相同
+        this.score++
         this.generateNextLandingBox()
         // 改变小人的朝向 指向下一个盒子的中心点
         let x0 = jumpableObjectCenter.x,
@@ -144,14 +156,9 @@ function jumpoverHandler(dx, dz) {
     } else {
         // 暂时把curLandingBoxIndex看做分数
         this.emit('gameover', this.curLandingBoxIndex)
-        this.state = this.GAMA_OVER
-
-        setTimeout(() => {
-            this.restart()
-        }, 1000)
+        this.gameState = this.GAMA_OVER
     }
 
 
 }
-
 export default Game
