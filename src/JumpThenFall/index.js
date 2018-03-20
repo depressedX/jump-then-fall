@@ -1,5 +1,5 @@
 import ee from 'event-emitter'
-import BaseLandingBox from './objects/BaseLandingBox'
+import BaseLandingBox from './objects/landingBoxes/BaseLandingBox'
 import * as THREE from 'three'
 
 
@@ -61,6 +61,9 @@ Game.prototype = {
     constructor: Game,
     restart(){
         this.reset()
+        // renderingController初始化相机位置
+        this.renderingController.resetCameraPosition()
+
         this.gameState = this.PLAYING
     },
     /***

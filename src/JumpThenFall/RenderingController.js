@@ -25,11 +25,14 @@ function RenderingController(context, config = defaultConfig) {
     this.camera = new THREE.OrthographicCamera(left, -left, top, -top, 0.1, 5000)
 
     // 仿射变换到正确姿势
-    this.camera.offsetX = -300
-    this.camera.offsetZ = -300
-    this.camera.translateZ(4000)
-    this.camera.position.set(this.camera.offsetX, context.consts.JUMPABLE_OBJECT_SIZE * 5 * 6, this.camera.offsetZ)
+    this.camera.position.x =-300
+    this.camera.position.z =-300
+    this.camera.position.y = context.consts.JUMPABLE_OBJECT_SIZE * 20
     this.camera.lookAt(new THREE.Vector3(0, 0, 0))
+    this.camera.position.x +=70
+    this.camera.position.z +=70
+    this.cameraOffsetX = -230
+    this.cameraOffsetZ = -230
 
 
     // 平行光
@@ -68,20 +71,20 @@ RenderingController.prototype = {
             z1 = context.landingBoxes[context.curLandingBoxIndex + 1].position.z
 
 
-        this.cameraPositionLeftX = this.camera.offsetX * .9 + (x0 + x1) / 2 - this.camera.position.x
-        this.cameraPositionLeftZ = this.camera.offsetZ * .9 + (z0 + z1) / 2 - this.camera.position.z
+        this.cameraPositionLeftX = this.cameraOffsetX + (x0 + x1) / 2 - this.camera.position.x
+        this.cameraPositionLeftZ = this.cameraOffsetZ + (z0 + z1) / 2 - this.camera.position.z
 
 
         // 处理剩下的需要移动的相机XZ
         let l = Math.sqrt(this.cameraPositionLeftX * this.cameraPositionLeftX + this.cameraPositionLeftZ * this.cameraPositionLeftZ)
-        let dx,dz
-        if (l>this.cameraDeltaDist){
-            dx = this.cameraDeltaDist*this.cameraPositionLeftX / l
-            dz = this.cameraDeltaDist*this.cameraPositionLeftZ / l
-        }else if (l!==0){
+        let dx, dz
+        if (l > this.cameraDeltaDist) {
+            dx = this.cameraDeltaDist * this.cameraPositionLeftX / l
+            dz = this.cameraDeltaDist * this.cameraPositionLeftZ / l
+        } else if (l !== 0) {
             dx = this.cameraPositionLeftX
             dz = this.cameraPositionLeftZ
-        }else {
+        } else {
             dx = 0
             dz = 0
         }
@@ -91,11 +94,15 @@ RenderingController.prototype = {
 
         this.renderer.render(this.scene, this.camera)
     },
+    resetCameraPosition(){
+        this.camera.position.x = this.cameraOffsetX
+        this.camera.position.z = this.cameraOffsetZ
+    }
 }
 
 function watchLandingBoxArray(object, property) {
     let that = this
-    let reDefinedProperties  = {
+    let reDefinedProperties = {
         push: {
             value: function (...x) {
                 that.scene.add.apply(that.scene, x.map(v => v.object3D))
@@ -122,7 +129,7 @@ function watchLandingBoxArray(object, property) {
                 }
             })
             // add新数组的元素
-            if (v.length>0) {
+            if (v.length > 0) {
                 that.scene.add.apply(that.scene, v.map(vv => vv.object3D))
             }
             this['_' + property] = v
@@ -137,34 +144,6 @@ function watchLandingBoxArray(object, property) {
     Object.defineProperties(object['_' + property], reDefinedProperties)
 
 
-}
-
-// 相机移动寄托
-function CameraTransitioner(camera, speed) {
-    this.x = 0
-    this.y = 0
-    this.z = 0
-    this.speed = speed
-    this.camera = camera
-}
-
-CameraTransitioner.prototype = {
-    constructor: CameraTransitioner,
-    commit(x, y, z) {
-        this.x += x
-        this.y += y
-        this.z += z
-    },
-    move() {
-        let l = Math.sqrt(this.x * this.x + this.y * this.y + this.z * this.z)
-        let d = l * this.speed / 10
-        let dx = d * this.x / l,
-            dy = d * this.y / l,
-            dz = d * this.z / l
-        this.camera.position.x += dx
-        this.camera.position.y += dy
-        this.camera.position.z += dz
-    }
 }
 
 export default RenderingController
