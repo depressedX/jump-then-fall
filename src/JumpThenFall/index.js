@@ -13,59 +13,55 @@ import consts from './consts'
 import JumpableObject from './objects/JumpableObject'
 import RenderingController from './RenderingController'
 
-function Game(dom, constants = consts) {
+class Game {
+    constructor(dom, constants = consts) {
+        Object.assign(this, {})
 
-    Object.assign(this, {
-        consts: consts,
 
-        displayCanvasDom: dom,
-        renderingController: null,
+        this.consts = consts
+
+        this.displayCanvasDom = dom
+        this.renderingController = null
 
         // 被控制的跳跃小人~~~~
-        jumpableObject: null,
+        this.jumpableObject = new JumpableObject(constants.JUMPABLE_OBJECT_SIZE)
+        this.jumpableObject.position.y = this.consts.ALL_LANDING_BOX_HEIGHT
+        this.jumpableObject.on('jumpover', jumpoverHandler.bind(this))
 
-        landingBoxes: [],
+        this.landingBoxes = []
 
         /****************************************************************/
         /*                       状态变量                          */
         /****************************************************************/
-        score:0,
-        gameState: 0,
-        WAITING_PLAYING:0,
-        PLAYING: 1,
-        GAMA_OVER: 2,
+        this.score = 0
+        this.gameState = 0
+        this.WAITING_PLAYING = 0
+        this.PLAYING = 1
+        this.GAMA_OVER = 2
         // 当前着陆的盒子
-        curLandingBoxIndex: 0,
+        this.curLandingBoxIndex = 0
         // 下个盒子的方向
-        nextLandingBoxDirection: 0,
-        LANDING_BOX_DIRECTION_X: 0,
-        LANDING_BOX_DIRECTION_Z: 1,
-
-    })
-
-    // 初始化跳跃小人
-    this.jumpableObject = new JumpableObject(constants.JUMPABLE_OBJECT_SIZE)
-    this.jumpableObject.position.y = this.consts.ALL_LANDING_BOX_HEIGHT
-    this.jumpableObject.on('jumpover', jumpoverHandler.bind(this))
+        this.nextLandingBoxDirection = 0
+        this.LANDING_BOX_DIRECTION_X = 0
+        this.LANDING_BOX_DIRECTION_Z = 1
 
 
-    // 执行一系列初始化
-    this.reset()
+        // 执行一系列初始化
+        this.reset()
 
 
-    // 总渲染控制器
-    this.renderingController = new RenderingController(this)
-}
+        // 总渲染控制器
+        this.renderingController = new RenderingController(this)
+    }
 
-Game.prototype = {
-    constructor: Game,
-    restart(){
+    restart() {
         this.reset()
         // renderingController初始化相机位置
         this.renderingController.resetCameraPosition()
 
         this.gameState = this.PLAYING
-    },
+    }
+
     /***
      * 重置到WAITING_PLAYING状态
      */
@@ -96,7 +92,8 @@ Game.prototype = {
         this.jumpableObject.orientation = new THREE.Vector2(x1 - x0, z1 - z0)
 
 
-    },
+    }
+
     // 根据当前站立的盒子生成下一个盒子
     generateNextLandingBox() {
         let curPosX = this.landingBoxes[this.curLandingBoxIndex].position.x,
@@ -116,7 +113,7 @@ Game.prototype = {
 
 
         this.landingBoxes.push(nextLandingBox)
-    },
+    }
 
     // 开始蓄力跳
     charge() {
@@ -125,11 +122,13 @@ Game.prototype = {
             return
         }
         this.jumpableObject.charge()
-    },
+    }
+
     release() {
         this.jumpableObject.release()
     }
 }
+
 ee(Game.prototype)
 
 function jumpoverHandler(dx, dz) {
@@ -164,4 +163,5 @@ function jumpoverHandler(dx, dz) {
 
 
 }
+
 export default Game

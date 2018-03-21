@@ -8,22 +8,16 @@ import ee from 'event-emitter'
  * x,y  朝向x轴正方向垂直于y跳跃
  * @constructor
  */
-function BouncingSimulator() {
-    let publicProperties = {
-        // 已走的步数
-        stepsTaken: 0,
-        x: 0,
-        y: 0,
-        targetDist: 0,
-        maxHeight: 0,
-        totalSteps: 0,
-        isEnd: false
+class BouncingSimulator {
+    constructor() {
+        this.stepsTaken = 0
+        this.x = this.y = 0
+        this.targetDist = 0
+        this.maxHeight = 0
+        this.totalSteps = 0
+        this.isEnd = false
     }
-    Object.assign(this, publicProperties)
-}
 
-BouncingSimulator.prototype = {
-    constructor: BouncingSimulator,
     /***
      * 重置到起点  开始模拟整个过程
      * @param maxHeight 弹跳过程中最大高度
@@ -36,7 +30,7 @@ BouncingSimulator.prototype = {
         this.maxHeight = maxHeight
         this.totalSteps = steps
         this.isEnd = false
-    },
+    }
 
     /***
      * 前进一步
@@ -68,76 +62,71 @@ BouncingSimulator.prototype = {
  * 会触发的事件 onjumpover(dx,dz)
  * @constructor
  */
-function JumpableObject(size) {
-    let publicProperties = {
+class JumpableObject {
+    constructor(size) {
         /****************************************************************/
         /*                       info                          */
         /****************************************************************/
-        size,
-
+        this.size = size
         // 默认弹跳下落到与原来Y相同则停止
-        initialY: 0,
+        this.initialY = 0
         // 弹跳高度与size成正比
-        maxHeight: 0,
+        this.maxHeight = 0
         // 最大弹跳距离与size成正比
-        maxBouncingDuration: 125,
+        this.maxBouncingDuration = 125
+
 
         /****************************************************************/
         /*                       状态量                          */
         /****************************************************************/
-        state: null,
-        bouncingDuration: 0,
-        orientation: new THREE.Vector2(1, 1),
-        position: null,
-
+        this.state = null
+        this.bouncingDuration = 0
+        this.orientation = new THREE.Vector2(1, 1)
+        this.position = null
 
         /****************************************************************/
         /*                       常量                          */
         /****************************************************************/
-        IDLE: 0,
-        CHARGING: 1,//蓄力中
-        BOUNCING: 2,//在空中
-
+        this.IDLE = 0
+        this.CHARGING = 1//蓄力中
+        this.BOUNCING = 2//在空中
 
         /****************************************************************/
         /*                       私有工具属性                          */
         /****************************************************************/
-        bouncingSimulator: new BouncingSimulator()
+        this.bouncingSimulator = new BouncingSimulator()
 
+
+        Object.defineProperties(this, {
+            position: {
+                enumerable: true,
+                get() {
+                    if (!this.object3D) return null
+                    return this.object3D.position
+                }
+            },
+            maxHeight: {
+                enumerable: true,
+                get() {
+                    return this.size * 2
+                }
+            }
+        })
+
+
+        this.object3D = new JumpableObject3D(size)
+        this.state = this.IDLE
+
+        // 委托给FPS管理器的更新函数
+        FPS.delegate(this.update.bind(this))
     }
-    Object.assign(this, publicProperties)
-    Object.defineProperty(this, 'position', {
-        enumerable: true,
-        get() {
-            if (!this.object3D) return null
-            return this.object3D.position
-        }
-    })
-    Object.defineProperty(this, 'maxHeight', {
-        enumerable: true,
-        get() {
-            return this.size * 2
-        }
-    })
-
-
-    this.object3D = new JumpableObject3D(size)
-    this.state = this.IDLE
-
-    // 委托给FPS管理器的更新函数
-    FPS.delegate(this.update.bind(this))
-
-}
-
-// 绑定原型函数
-JumpableObject.prototype = {
-    constructor: JumpableObject,
 
     charge() {
         if (!this.state === this.IDLE) return
         this.state = this.CHARGING
         this.object3D.press(120)
-    },
+    }
+
     release() {
         if (!this.state === this.CHARGING) return
         this.state = this.BOUNCING
@@ -146,7 +135,7 @@ JumpableObject.prototype = {
         console.log(this.bouncingDuration)
         this.bouncingSimulator.reset(this.maxHeight, dist, 20)
         this.bouncingDuration = 0
-    },
+    }
 
     update() {
         switch (this.state) {
@@ -173,10 +162,9 @@ JumpableObject.prototype = {
             }
         }
         this.object3D.update()
-    },
-
-
+    }
 }
+
 // 绑定事件触发器
 ee(JumpableObject.prototype)
 
@@ -186,126 +174,125 @@ ee(JumpableObject.prototype)
  * @param size  圆柱体下底面直径
  * @constructor
  */
-function JumpableObject3D(size) {
+class JumpableObject3D extends THREE.Group {
+    constructor(size) {
+        super()
+        this.radiusTop = size / 2 * .7
+        this.radiusBottom = size / 2
+        this.height = size * 1.7
+        this.radialSegments = size
+        this.heightSegments = size * 8
 
-    this.radiusTop = size / 2 * .7
-    this.radiusBottom = size / 2
-    this.height = size * 1.7
-    this.radialSegments = size
-    this.heightSegments = size * 8
+        // 颜色
+        let randomColor = new THREE.Color().setHSL(Math.random(), .5, .5)
 
-    // 颜色
-    let randomColor = new THREE.Color().setHSL(Math.random(), .5, .5)
+        // 身体 上底半径小的圆柱体
+        // 身体几何体
+        let bodyGeometry = new THREE.CylinderGeometry(this.radiusTop, this.radiusBottom, this.height, this.radialSegments, this.heightSegments)
+        // 身体的骨骼
+        let bones = [],
+            bone0 = new THREE.Bone(),
+            bone1 = new THREE.Bone(),
+            bone2 = new THREE.Bone()
+        bone0.position.y = -this.height / 2
+        bone1.position.y = 0
+        bone2.position.y = this.height / 2
+        bone0.add(bone1)
+        bone1.add(bone2)
+        bones.push(bone0, bone1, bone2)
+        let skeleton = new THREE.Skeleton(bones);
 
-    // 身体 上底半径小的圆柱体
-    // 身体几何体
-    let bodyGeometry = new THREE.CylinderGeometry(this.radiusTop, this.radiusBottom, this.height, this.radialSegments, this.heightSegments)
-    // 身体的骨骼
-    let bones = [],
-        bone0 = new THREE.Bone(),
-        bone1 = new THREE.Bone(),
-        bone2 = new THREE.Bone()
-    bone0.position.y = -this.height / 2
-    bone1.position.y = 0
-    bone2.position.y = this.height / 2
-    bone0.add(bone1)
-    bone1.add(bone2)
-    bones.push(bone0, bone1, bone2)
-    let skeleton = new THREE.Skeleton(bones);
-
-    // 修改顶点的skinIndices/skinWeights
-    for (var heightSegment = this.heightSegments; heightSegment >= 0; heightSegment--) {
-        let index = heightSegment > this.heightSegments / 2 ? 1 : 0
-        let segmentHeight = this.height / this.heightSegments
-        let offset = (heightSegment * segmentHeight - bones[index].position.y - this.height / 2) / (this.height / 2)
-        for (var i = 0; i < this.radialSegments; i++) {
-            bodyGeometry.skinIndices.push(new THREE.Vector4(index, index + 1, 0, 0))
-            bodyGeometry.skinWeights.push(new THREE.Vector4(1 - offset, offset, 0, 0))
+        // 修改顶点的skinIndices/skinWeights
+        for (var heightSegment = this.heightSegments; heightSegment >= 0; heightSegment--) {
+            let index = heightSegment > this.heightSegments / 2 ? 1 : 0
+            let segmentHeight = this.height / this.heightSegments
+            let offset = (heightSegment * segmentHeight - bones[index].position.y - this.height / 2) / (this.height / 2)
+            for (var i = 0; i < this.radialSegments; i++) {
+                bodyGeometry.skinIndices.push(new THREE.Vector4(index, index + 1, 0, 0))
+                bodyGeometry.skinWeights.push(new THREE.Vector4(1 - offset, offset, 0, 0))
+            }
         }
-    }
-    bodyGeometry.skinIndices.push(new THREE.Vector4(1, 2, 0, 0))
-    bodyGeometry.skinWeights.push(new THREE.Vector4(0, 1, 0, 0))
-    bodyGeometry.skinIndices.push(new THREE.Vector4(0, 1, 0, 0))
-    bodyGeometry.skinWeights.push(new THREE.Vector4(1, 0, 0, 0))
+        bodyGeometry.skinIndices.push(new THREE.Vector4(1, 2, 0, 0))
+        bodyGeometry.skinWeights.push(new THREE.Vector4(0, 1, 0, 0))
+        bodyGeometry.skinIndices.push(new THREE.Vector4(0, 1, 0, 0))
+        bodyGeometry.skinWeights.push(new THREE.Vector4(1, 0, 0, 0))
 
-    let bodyMaterial = new THREE.MeshLambertMaterial({
-        color: randomColor,
-        skinning: true
-    })
-    let body = new THREE.SkinnedMesh(bodyGeometry, bodyMaterial)
-    // 绑定骨架
-    body.add(bones[0])
-    body.bind(skeleton)
-    this.bones = bones
-
-    // 头  就是一个球体
-    let headGeometry = new THREE.SphereGeometry(this.radiusTop),
-        headMaterial = new THREE.MeshLambertMaterial({
-            color: randomColor
+        let bodyMaterial = new THREE.MeshLambertMaterial({
+            color: randomColor,
+            skinning: true
         })
-    let head = new THREE.Mesh(headGeometry, headMaterial)
+        let body = new THREE.SkinnedMesh(bodyGeometry, bodyMaterial)
+        // 绑定骨架
+        body.add(bones[0])
+        body.bind(skeleton)
+        this.bones = bones
+
+        // 头  就是一个球体
+        let headGeometry = new THREE.SphereGeometry(this.radiusTop),
+            headMaterial = new THREE.MeshLambertMaterial({
+                color: randomColor
+            })
+        let head = new THREE.Mesh(headGeometry, headMaterial)
 
 
-    body.position.y = this.height / 2
-    head.position.set(0, this.height + size / 2, 0)
+        body.position.y = this.height / 2
+        head.position.set(0, this.height + size / 2, 0)
 
-    THREE.Group.call(this)
-    this.add(body, head)
-    this.body = body
-    this.head = head
+        this.body = body
+        this.head = head
+        super.add(body, head)
 
-    this.morphType = null
-    this.morphFactor = 0
-}
 
-JumpableObject3D.prototype = Object.assign(Object.create(THREE.Group.prototype), {
-    constructor: JumpableObject3D,
+        // 形变相关
+        this.PRESS = 0
+        this.RELEASE = 1
+        this.morphType = null
+        this.morphFactor = 0
+    }
+
     update() {
-
-        switch (this.morphType){
-            case this.PRESS:{
+        switch (this.morphType) {
+            case this.PRESS: {
                 let c = this.morphFactor
-                this.head.position.y -= 2*c
+                this.head.position.y -= 2 * c
                 this.bones[2].position.y -= c
                 this.bones[1].position.y -= c
-                this.bones[1].scale.x+=c/10
-                this.bones[1].scale.z+=c/10
-                this.bones[2].scale.x+=c/50
-                this.bones[2].scale.z+=c/50
+                this.bones[1].scale.x += c / 10
+                this.bones[1].scale.z += c / 10
+                this.bones[2].scale.x += c / 50
+                this.bones[2].scale.z += c / 50
                 if (this.bones[2].position.y < 0) {
                     this.morphType = null
                 }
                 break
             }
-            case this.RELEASE:{
+            case this.RELEASE: {
                 let c = this.morphFactor
-                this.head.position.y += 2*c
+                this.head.position.y += 2 * c
                 this.bones[2].position.y += c
                 this.bones[1].position.y += c
-                this.bones[1].scale.x-=c/10
-                this.bones[1].scale.z-=c/10
-                this.bones[2].scale.x-=c/50
-                this.bones[2].scale.z-=c/50
-                if (this.bones[2].position.y > this.height/2) {
+                this.bones[1].scale.x -= c / 10
+                this.bones[1].scale.z -= c / 10
+                this.bones[2].scale.x -= c / 50
+                this.bones[2].scale.z -= c / 50
+                if (this.bones[2].position.y > this.height / 2) {
                     this.morphType = null
                 }
                 break
             }
         }
-    },
-    press(duration) {
-        this.morphFactor = this.height/2/duration
-        this.morphType = this.PRESS
-    },
-    release(duration) {
-        this.morphFactor = this.height/2/duration
-        this.morphType = this.RELEASE
-    },
+    }
 
-    // 形变类型
-    PRESS: 0,
-    RELEASE: 1
-})
+    press(duration) {
+        this.morphFactor = this.height / 2 / duration
+        this.morphType = this.PRESS
+    }
+
+    release(duration) {
+        this.morphFactor = this.height / 2 / duration
+        this.morphType = this.RELEASE
+    }
+}
 
 
 export default JumpableObject
