@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <title>jump then fall~</title>
+    <meta name="viewport"
+          content="width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,user-scalable=0">
+    <style>
+        @font-face {
+            font-family: myFirstFont;
+            src: url('digital_number.ttf')
+        }
+
+        * {
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        body {
+            margin: 0;
+        }
+
+        a {
+            color: inherit;
+        }
+
+        #canvas-wrapper {
+            display: inline-block;
+            position: relative;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        /*开始界面*/
+        .game-start-panel {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(50, 50, 50, .5);
+        }
+
+        .game-start-button {
+            text-decoration: none;
+            display: inline-block;
+            position: absolute;
+            width: 50%;
+            background-color: white;
+            height: 60px;
+            font-size: 20px;
+            line-height: 60px;
+            border-radius: 30px;
+            text-align: center;
+            bottom: 100px;
+            left: 25%;
+        }
+
+        .green-play-icon {
+            height: 20px;
+            vertical-align: -3px;
+            margin-right: .5em;
+        }
+
+        /*结束界面*/
+        .game-over-achievement-panel {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(50, 50, 50, .5);
+        }
+
+        .game-restart-button {
+            text-decoration: none;
+            display: inline-block;
+            position: absolute;
+            width: 50%;
+            background-color: white;
+            height: 60px;
+            font-size: 20px;
+            line-height: 60px;
+            border-radius: 30px;
+            text-align: center;
+            bottom: 100px;
+            left: 25%;
+        }
+
+        .green-replay-icon {
+            height: 20px;
+            vertical-align: -3px;
+            margin-right: .5em;
+        }
+
+        /*分数显示*/
+        .score-panel {
+            position: absolute;
+            display: inline-block;
+            left: 1em;
+            top: 1.5em;
+            font-size: 26px;
+            font-family: myFirstFont;
+        }
+
+        /*结算分数*/
+        .final-score {
+            position: absolute;
+            text-align: center;
+            font-size: 115px;
+            font-family: myFirstFont;
+            color: white;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+<div id="canvas-wrapper">
+    <template>
+        <div class="game-start-panel" v-show="game&&game.gameState===game.WAITING_PLAYING">
+            <a href="javascript:void (0)" class="game-start-button"><img :src="greenPlaySrc"
+                                                                         class="green-play-icon"><span>开始游戏</span></a>
+        </div>
+        <div class="game-over-achievement-panel" v-show="game&&game.gameState===game.GAMA_OVER">
+            <div class="final-score">{{game?game.score:-1}}</div>
+            <a href="javascript:void (0)" class="game-restart-button"><img :src="greenReplaySrc"
+                                                                           class="green-replay-icon"><span>再玩一局</span></a>
+        </div>
+        <div class="score-panel" v-show="game&&game.gameState===game.PLAYING">{{game?game.score:-1}}</div>
+        <canvas id="main-scene"></canvas>
+    </template>
+</div>
+<script type="text/javascript" src="main.js"></script></body>
+</html>
