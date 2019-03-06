@@ -1,8 +1,6 @@
 import ee from 'event-emitter'
-import BaseLandingBox from './objects/landingBoxes/BaseLandingBox'
+import {BaseLandingBox, LandingBox} from './objects/landingBoxes/LandingBox'
 import * as THREE from 'three'
-
-
 /***
  * 主游戏类\游戏入口
  * 可触发的事件 ongameover
@@ -12,16 +10,38 @@ import * as THREE from 'three'
 import consts from './consts'
 import JumpableObject from './objects/JumpableObject'
 import RenderingController from './RenderingController'
+import {CurveUtils} from "three";
+import {RenderingContext} from "./RenderingController";
 
-class Game {
+class Game implements RenderingContext {
+    /****************************************************************/
+    /*                       状态变量                          */
+    /****************************************************************/
+    score = 0
+    gameState = 0
+    WAITING_PLAYING = 0
+    PLAYING = 1
+    GAMA_OVER = 2
+    // 当前着陆的盒子
+    curLandingBoxIndex = 0
+    // 下个盒子的方向
+    nextLandingBoxDirection = 0
+    LANDING_BOX_DIRECTION_X = 0
+    LANDING_BOX_DIRECTION_Z = 1
+
+
+    consts = consts
+    displayCanvasDom: HTMLCanvasElement
+    renderingController: RenderingController
+
+    jumpableObject: JumpableObject
+    landingBoxes: LandingBox[]
+
     constructor(dom, constants = consts) {
-        Object.assign(this, {})
-
 
         this.consts = consts
 
         this.displayCanvasDom = dom
-        this.renderingController = null
 
         // 被控制的跳跃小人~~~~
         this.jumpableObject = new JumpableObject(constants.JUMPABLE_OBJECT_SIZE)
@@ -29,21 +49,6 @@ class Game {
         this.jumpableObject.on('jumpover', jumpoverHandler.bind(this))
 
         this.landingBoxes = []
-
-        /****************************************************************/
-        /*                       状态变量                          */
-        /****************************************************************/
-        this.score = 0
-        this.gameState = 0
-        this.WAITING_PLAYING = 0
-        this.PLAYING = 1
-        this.GAMA_OVER = 2
-        // 当前着陆的盒子
-        this.curLandingBoxIndex = 0
-        // 下个盒子的方向
-        this.nextLandingBoxDirection = 0
-        this.LANDING_BOX_DIRECTION_X = 0
-        this.LANDING_BOX_DIRECTION_Z = 1
 
 
         // 执行一系列初始化

@@ -1,16 +1,15 @@
-var HtmlWebpackPlugin = require('html-webpack-plugin');
-var path = require('path');
+let HtmlWebpackPlugin = require('html-webpack-plugin');
+let path = require('path');
 module.exports = {
-    mode:'development',
+    mode: 'development',
+    entry: './src/index.js',
     devServer: {
         contentBase: path.join(__dirname, "dist"),
-        compress: true,
-        port: 80,
-        host:'0.0.0.0'
+        hot: true
     },
     plugins: [
         new HtmlWebpackPlugin({
-            template:path.resolve(__dirname,'./src/index.html')
+            template: path.resolve(__dirname, './src/index.html')
         })
     ],
     module: {
@@ -32,17 +31,21 @@ module.exports = {
                     {
                         loader: 'file-loader',
                         options: {
-                            name:'[name].[ext]'
+                            name: '[name].[ext]'
                         }
                     }
                 ]
-            }
+            },
+
+            {test: /\.(t|j)sx?$/, use: {loader: 'awesome-typescript-loader'}},
         ]
     },
     resolve: {
         alias: {
 
-            'vue':'vue/dist/vue.min.js'
-        }
+            'vue': 'vue/dist/vue.js'
+        },
+
+        extensions: [".ts", ".tsx", ".js", ".jsx"]
     }
 }

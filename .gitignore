@@ -1,9 +1,2 @@
 node_modules/*
-.idea/inspectionProfiles/
-.idea/jump-then-fall.iml
-.idea/modules.xml
-.idea/workspace.xml
-.idea/jsLibraryMappings.xml
-.idea/misc.xml
-.idea/shelf/
-.idea/vcs.xml
+.idea/*

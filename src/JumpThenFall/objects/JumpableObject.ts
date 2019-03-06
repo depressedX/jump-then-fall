@@ -9,13 +9,15 @@ import ee from 'event-emitter'
  * @constructor
  */
 class BouncingSimulator {
+    stepsTaken = 0
+    x = 0
+    y = 0
+    targetDist = 0
+    maxHeight = 0
+    totalSteps = 0
+    isEnd = false
+
     constructor() {
-        this.stepsTaken = 0
-        this.x = this.y = 0
-        this.targetDist = 0
-        this.maxHeight = 0
-        this.totalSteps = 0
-        this.isEnd = false
     }
 
     /***
@@ -57,96 +59,106 @@ class BouncingSimulator {
     }
 }
 
+enum state {
+    IDLE = 0,
+    CHARGING = 1,//蓄力中
+    BOUNCING = 2,//在空中
+}
+
+
 /***
  * 可跳跃的物体，能够蓄力弹跳
  * 会触发的事件 onjumpover(dx,dz)
  * @constructor
  */
-class JumpableObject {
+class JumpableObject{
+    /****************************************************************/
+    /*                       info                          */
+    /****************************************************************/
+    size = 0
+    // 默认弹跳下落到与原来Y相同则停止
+    initialY = 0
+    // 弹跳高度与size成正比
+    get maxHeight() {
+        return this.size * 2
+    }
+    // 最大弹跳距离与size成正比
+    maxBouncingDuration = 125
+
+
+    /****************************************************************/
+    /*                       状态量                          */
+    /****************************************************************/
+    state = state.IDLE
+    bouncingDuration = 0
+    orientation = new THREE.Vector2(1, 1)
+
+    /****************************************************************/
+    /*                       常量                          */
+    /****************************************************************/
+
+
+    /****************************************************************/
+    /*                       私有工具属性                          */
+    /****************************************************************/
+    bouncingSimulator = new BouncingSimulator()
+
+
+    /****************************************************************/
+    /*                       其他                          */
+    /****************************************************************/
+    object3D: JumpableObject3D
+    
+    
+    // todo 这里还不确定对不对
+    height = 0
+
+    get position() {
+        if (!this.object3D) throw new Error('object3D is null')
+        return this.object3D.position
+    }
+    
     constructor(size) {
-        /****************************************************************/
-        /*                       info                          */
-        /****************************************************************/
+
         this.size = size
-        // 默认弹跳下落到与原来Y相同则停止
-        this.initialY = 0
-        // 弹跳高度与size成正比
-        this.maxHeight = 0
-        // 最大弹跳距离与size成正比
-        this.maxBouncingDuration = 125
-
-
-        /****************************************************************/
-        /*                       状态量                          */
-        /****************************************************************/
-        this.state = null
-        this.bouncingDuration = 0
-        this.orientation = new THREE.Vector2(1, 1)
-        this.position = null
-
-        /****************************************************************/
-        /*                       常量                          */
-        /****************************************************************/
-        this.IDLE = 0
-        this.CHARGING = 1//蓄力中
-        this.BOUNCING = 2//在空中
-
-        /****************************************************************/
-        /*                       私有工具属性                          */
-        /****************************************************************/
-        this.bouncingSimulator = new BouncingSimulator()
-
 
         Object.defineProperties(this, {
-            position: {
-                enumerable: true,
-                get() {
-                    if (!this.object3D) return null
-                    return this.object3D.position
-                }
-            },
-            maxHeight: {
-                enumerable: true,
-                get() {
-                    return this.size * 2
-                }
-            }
         })
 
 
         this.object3D = new JumpableObject3D(size)
-        this.state = this.IDLE
+        this.state = state.IDLE
 
-        // 委托给FPS管理器的更新函数
+// 委托给FPS管理器的更新函数
         FPS.delegate(this.update.bind(this))
     }
 
     charge() {
-        if (!this.state === this.IDLE) return
-        this.state = this.CHARGING
+        if (this.state !== state.IDLE) return
+        this.state = state.CHARGING
         this.object3D.press(120)
     }
 
     release() {
-        if (!this.state === this.CHARGING) return
-        this.state = this.BOUNCING
+        if (!(this.state === state.CHARGING)) return
+        this.state = state.BOUNCING
         this.object3D.release(120)
         let dist = Math.min(this.bouncingDuration, this.maxBouncingDuration) * 2.5
-        console.log(this.bouncingDuration)
+        
         this.bouncingSimulator.reset(this.maxHeight, dist, 20)
         this.bouncingDuration = 0
     }
 
     update() {
         switch (this.state) {
-            case this.IDLE: {
+            case state.IDLE: {
                 break
             }
-            case this.CHARGING: {
+            case state.CHARGING: {
                 this.bouncingDuration++
                 break
             }
-            case this.BOUNCING: {
+            case state.BOUNCING: {
                 let {dx, dy} = this.bouncingSimulator.next()
                 this.height = this.height + dy
                 this.position.x += dx * Math.cos(this.orientation.angle())
@@ -154,7 +166,7 @@ class JumpableObject {
                 this.position.y += dy
 
                 if (this.bouncingSimulator.isEnd) {
-                    this.state = this.IDLE
+                    this.state = state.IDLE
                     this.bouncingDuration = 0
                     this.emit('jumpover', this.bouncingSimulator.x, this.bouncingSimulator.y)
                 }
@@ -167,6 +179,9 @@ class JumpableObject {
 
 // 绑定事件触发器
 ee(JumpableObject.prototype)
+interface JumpableObject extends EventEmitter{
+    
+}
 
 
 /***
@@ -175,12 +190,27 @@ ee(JumpableObject.prototype)
  * @constructor
  */
 class JumpableObject3D extends THREE.Group {
+    radiusTop:number
+    radiusBottom:number
+    height:number
+    radiusSegments:number
+    heightSegments:number
+    
+    bones:THREE.Bone[]
+    head:THREE.Object3D
+    body:THREE.Object3D
+
+    // 形变相关
+    PRESS = 0
+    RELEASE = 1
+    morphType:number|null
+    morphFactor = 0
     constructor(size) {
         super()
         this.radiusTop = size / 2 * .7
         this.radiusBottom = size / 2
         this.height = size * 1.7
-        this.radialSegments = size
+        this.radiusSegments = size
         this.heightSegments = size * 8
 
         // 颜色
@@ -188,9 +218,10 @@ class JumpableObject3D extends THREE.Group {
 
         // 身体 上底半径小的圆柱体
         // 身体几何体
-        let bodyGeometry = new THREE.CylinderGeometry(this.radiusTop, this.radiusBottom, this.height, this.radialSegments, this.heightSegments)
+        let bodyGeometry = new THREE.CylinderGeometry(this.radiusTop, 
+            this.radiusBottom, this.height, this.radiusSegments, this.heightSegments)
         // 身体的骨骼
-        let bones = [],
+        let bones:THREE.Bone[] = [],
             bone0 = new THREE.Bone(),
             bone1 = new THREE.Bone(),
             bone2 = new THREE.Bone()
@@ -207,7 +238,7 @@ class JumpableObject3D extends THREE.Group {
             let index = heightSegment > this.heightSegments / 2 ? 1 : 0
             let segmentHeight = this.height / this.heightSegments
             let offset = (heightSegment * segmentHeight - bones[index].position.y - this.height / 2) / (this.height / 2)
-            for (var i = 0; i < this.radialSegments; i++) {
+            for (let i = 0; i < this.radiusSegments; i++) {
                 bodyGeometry.skinIndices.push(new THREE.Vector4(index, index + 1, 0, 0))
                 bodyGeometry.skinWeights.push(new THREE.Vector4(1 - offset, offset, 0, 0))
             }
@@ -243,11 +274,6 @@ class JumpableObject3D extends THREE.Group {
         super.add(body, head)
 
 
-        // 形变相关
-        this.PRESS = 0
-        this.RELEASE = 1
-        this.morphType = null
-        this.morphFactor = 0
     }
 
     update() {

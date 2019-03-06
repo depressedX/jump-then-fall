@@ -4,9 +4,35 @@
 import * as THREE from 'three'
 import defaultConfig from './consts'
 import FPSController from "../utils/FPSController";
+import {LandingBox} from "./objects/landingBoxes/LandingBox";
+import JumpableObject from "./objects/JumpableObject";
+
+export interface RenderingContext {
+    landingBoxes:LandingBox[],
+    jumpableObject:JumpableObject
+    displayCanvasDom:HTMLCanvasElement
+    curLandingBoxIndex
+    consts:{[propertyName:string]:any}
+}
 
 class RenderingController {
-    constructor(context, config = defaultConfig) {
+    context:RenderingContext
+    config:{}
+    scene:THREE.Scene
+    camera:THREE.Camera
+    cameraOffsetX:number
+    cameraOffsetZ:number
+
+    directionLight:THREE.DirectionalLight
+    ambientLight:THREE.AmbientLight
+
+    renderer:THREE.WebGLRenderer
+
+    cameraPositionLeftX:number
+    cameraPositionLeftZ:number
+    cameraDeltaDist:number
+
+    constructor(context:RenderingContext, config = defaultConfig) {
         this.context = context
         this.config = config
 
@@ -36,9 +62,9 @@ class RenderingController {
 
 
         // 平行光
-        this.followingDirectionLight = new THREE.DirectionalLight()
-        this.followingDirectionLight.position.set(-2, -2, 5)
-        this.scene.add(this.followingDirectionLight)
+        this.directionLight = new THREE.DirectionalLight()
+        this.directionLight.position.set(-2, -2, 5)
+        this.scene.add(this.directionLight)
 
         // 环境光
         this.ambientLight = new THREE.AmbientLight()
@@ -116,7 +142,7 @@ function watchLandingBoxArray(object, property) {
         set(v) {
             let _v = this['_' + property]
             // 如果赋值的不是数组 返回
-            if (!v instanceof Array) {
+            if (!(v instanceof Array)) {
                 console.log('must assign an Array')
                 return
             }
